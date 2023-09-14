@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ElevenNote.Data.Entites;
+using ElevenNote.Data.Entities;
 
 namespace ElevenNote.Data
 {

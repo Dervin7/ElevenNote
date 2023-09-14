@@ -1,6 +1,5 @@
-using System.Security.AccessControl;
 using System;
-using SystemAcl.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace ElevenNote.Data.Entities
 {
@@ -11,16 +10,16 @@ namespace ElevenNote.Data.Entities
 
         [Required]
         [EmailAddress]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
 
         [Required]
-        public string Password { get; set; }
+        public string Password { get; set; } = string.Empty;
 
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
 
         [Required]
         public DateTime DateCreated { get; set; }
