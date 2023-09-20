@@ -29,6 +29,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Adds AuthenticationMiddleware to the IApplicationBuilder, enabling authentication capabilities.
+app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllers();
