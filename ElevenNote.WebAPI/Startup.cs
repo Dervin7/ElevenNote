@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using ElevenNote.Data;
 using ElevenNote.Services.User;
 using ElevenNote.Services.Token;
+using ElevenNote.Services.Note;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,9 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
 
+builder.Services.AddHttpContextAccessor();
+
 // Add User Service/Interface for Dependency Injection here
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<INoteService, NoteService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
