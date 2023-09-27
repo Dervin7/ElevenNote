@@ -25,6 +25,8 @@ namespace ElevenNote.Data.Entities
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
 
+        public List<NoteEntity> Notes { get; set; }
+
         [Required]
         public DateTime DateCreated { get; set; }
     }
