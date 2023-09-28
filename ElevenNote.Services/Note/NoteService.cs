@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection.Metadata;
 using System;
 using System.Collections.Generic;
@@ -23,6 +24,22 @@ namespace ElevenNote.Services.Note
                 throw new Exception("Attempted to build NoteService without User Id claim.");
 
             _dbContext = dbContext;
+        }
+
+        public async Task<bool> CreateNoteAsync(NoteCreate request)
+        {
+            var noteEntity = new NoteEntity
+            {
+                Title = request.Title,
+                Content = request.Content,
+                CreatedUtc = DateTimeOffsetConverter.Now,
+                OwnerId = userId
+            };
+
+            _dbContext.Notes.Add(noteEntity);
+
+            var numberOfChanges = await _dbContext.SaveChangesAsync();
+            return numberOfChanges == 1;
         }
 
         public async Task<IEnumerable<NoteListItem>> GetAllNotesAsync()
