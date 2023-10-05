@@ -21,7 +21,6 @@ namespace ElevenNote.WebAPI.Controllers
             _noteService = noteService;
         }
 
-        // POST api/Note
         [HttpPost]
         public async Task<IActionResult> CreateNote([FromBody] NoteCreate request)
         {
@@ -34,7 +33,6 @@ namespace ElevenNote.WebAPI.Controllers
             return BadRequest("Note could not be created.");
         }
 
-        // GET api/Note
         [HttpGet]
         public async Task<IActionResult> GetAllNotes()
         {
@@ -42,18 +40,25 @@ namespace ElevenNote.WebAPI.Controllers
             return Ok(notes);
         }
 
-        //Get api/Note/5
         [HttpGet("{noteId:int}")]
         public async Task<IActionResult> GetNoteById([FromRoute] int noteId)
         {
             var detail = await _noteService.GetNoteByIdAsync(noteId);
 
-            // Similar to our service method, we're using a ternary to determine our return type
-            // If the returned value (detail) is not null, return it with a 200 ok
-            // Otherwise return a NotFound() 404 response
             return detail is not null
             ? Ok(detail)
             : NotFound();
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateNoteById([FromBody] NoteUpdate request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            return await _noteService.UpdateNoteAsync(request)
+            ? Ok("Note updated successfully.")
+            : BadRequest("Note could not be updated.");
         }
     }
 }
