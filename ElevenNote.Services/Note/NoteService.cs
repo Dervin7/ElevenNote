@@ -14,8 +14,9 @@ namespace ElevenNote.Services.Note
     public class NoteService : INoteService
     {
         private readonly int _userId;
+        private readonly IMapper _mapper;
         private readonly ApplicationDbContext _dbContext;
-        public NoteService(IHttpContextAccessor httpContextAccessor, ApplicationDbContext dbContext)
+        public NoteService(IHttpContextAccessor httpContextAccessor, IMapper mapper, ApplicationDbContext dbContext)
         {
             var userClaims = httpContextAccessor.HttpContext.User.Identity as ClaimsIdentity;
             var value = userClaims.FindFirst("Id")?.Value;
@@ -23,71 +24,74 @@ namespace ElevenNote.Services.Note
             if (!validId)
                 throw new Exception("Attempted to build NoteService without User Id claim.");
 
+            _mapper = mapper;
             _dbContext = dbContext;
         }
 
         public async Task<bool> CreateNoteAsync(NoteCreate request)
         {
-            var noteEntity = new NoteEntity
-            {
-                Title = request.Title,
-                Content = request.Content,
-                CreatedUtc = DateTimeOffsetConverter.Now,
-                OwnerId = userId
-            };
-
-            _dbContext.Notes.Add(noteEntity);
-
-            var numberOfChanges = await _dbContext.SaveChangesAsync();
-            return numberOfChanges == 1;
-        }
-
-        public async Task<IEnumerable<NoteListItem>> GetAllNotesAsync()
-        {
-            var notes = await _dbContext.notes
-            .Where(entity => entity.OwnerId == _userId)
-            .Select(entity => new NoteListItem
-            {
-                Id = entity.Id,
-                Title = entity.Title,
-                CreatedUtc = entity.CreatedUtc
-            })
-            .ToListAsync();
-
-            return notes;
-        }
-
-        public async Task<NoteDetail> GetNoteByIdAsync(int noteId)
-        {
-            var noteEntity = await _dbContext.Notes
-            .FirstOrDefaultAsync(e =>
-            e.Id == noteId && e.OwnerId == _userId
+            var noteEntity = _mapper.Map<NoteCreate, NoteEntity>(request, opt =>
+            opt.AfterMap((src, dest) => dest.OwnerId = _userId)
             );
-
-            return noteEntity is null ? null : new NoteDetail
             {
-                Id = noteEntity.Id,
-                Title = noteEntity.Title,
-                Content = noteEntity.Content,
-                CreatedUtc = noteEntity.CreatedUtc,
-                ModifiedUtc = noteEntity.ModifiedUtc
-            };
-        }
 
-        public async Task<bool> UpdateNoteAsync(NoteUpdate request)
-        {
-            var noteEntity = await _dbContext.Notes.FindAsync(request.Id);
+                _dbContext.Notes.Add(noteEntity);
 
-            if (noteEntity?.OwnerId != _userId)
-                return false;
+                var numberOfChanges = await _dbContext.SaveChangesAsync();
+                return numberOfChanges == 1;
+            }
 
-            noteEntity.Title = request.Title;
-            noteEntity.Content = request.Content;
-            noteEntity.ModifiedUtc = DateTimeOffset.Now;
+            public async Task<IEnumerable<NoteListItem>> GetAllNotesAsync()
+            {
+                var notes = await _dbContext.notes
+                .Where(entity => entity.OwnerId == _userId)
+                .Select(entity => _mapper.Map<NoteListItem>(entity))
+                .ToListAsync();
 
-            var numberOfChanges = await _dbContext.SaveChangesAsync();
+                return notes;
+            }
 
-            return numberOfChanges == 1;
+            public async Task<NoteDetail> GetNoteByIdAsync(int noteId)
+            {
+                var noteEntity = await _dbContext.Notes
+                .FirstOrDefaultAsync(e =>
+                e.Id == noteId && e.OwnerId == _userId
+                );
+
+                return noteEntity is null ? null : _mapper.Map<NoteDetail>(noteEntity);
+            }
+
+            public async Task<bool> UpdateNoteAsync(NoteUpdate request)
+            {
+                var noteIsUserOwned = await _dbContext.Notes.AnyAsync(note =>
+                note.Id == request.Id && note.OwnerId == _userId
+                );
+
+                if (!noteIsUserOwned)
+                    return false;
+
+                var newEntity = _mapper.Map<NoteUpdate, NoteEntity>(request, opt =>
+                opt.AfterMap((src, dest) => dest.OwnerId = _userId)
+                );
+
+                _dbContext.Entry(newEntity).State = EntityState.Modified;
+
+                _dbContext.Entry(newEntity).Property(e => e.CreatedUtc).IsModified = false;
+
+                var numberOfChanges = await _dbContext.SaveChangesAsync();
+
+                return numberOfChanges == 1;
+            }
+
+            public async Task<bool> DeleteNoteAsync(int noteId)
+            {
+                var noteEntity = await _dbContext.Notes.FindAsync(noteId);
+
+                if (noteEntity?.OwnerId != _userId)
+                    return false;
+
+                _dbContext.Notes.Remove(noteEntity);
+                return await _dbContext.SaveChangesAsync() == 1;
+            }
         }
     }
-}
